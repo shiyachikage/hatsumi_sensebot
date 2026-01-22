@@ -1,8 +1,31 @@
 import discord
 import os
+from flask import Flask
+from threading import Thread
 
-# --- 設定エリア：ここを編集してワードを追加 ---
-# 反応したい単語をこのリストに自由に追加してください
+# ==========================================
+# 1. Render常時起動用のおまじない (Flask)
+# ==========================================
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "Bot is alive!"
+
+def run():
+    # Renderはデフォルトでポート10000を使用することが多いため、
+    # 環境変数からポートを取得するか、8080などを指定します
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host='0.0.0.0', port=port)
+
+def keep_alive():
+    t = Thread(target=run)
+    t.start()
+
+# ==========================================
+# 2. メンテナンス特化型：検知ワード設定
+# ==========================================
+# 反応させたい単語をここに追加するだけでOK
 TARGET_KEYWORDS = [
     # 1. 基本（カタカナ・ひらがな・英語）
     "センス", "せんす", "sense",
@@ -21,35 +44,39 @@ TARGET_KEYWORDS = [
     "選出",   # せん・しゅつ
     "泉州",   # せん・しゅう
 ]
-# ------------------------------------------
-
-intents = discord.Intents.default()
-intents.message_content = True 
+# ==========================================
+# 3. Botのメイン処理
+# ==========================================
+intents = discord.Intents.all()
 client = discord.Client(intents=intents)
 
 @client.event
 async def on_ready():
-    print(f'✅ 監視を開始しました（登録ワード数: {len(TARGET_KEYWORDS)}）')
+    print(f'--- ログイン完了 ---')
+    print(f'Bot名: {client.user.name}')
+    print(f'監視ワード: {", ".join(TARGET_KEYWORDS)}')
+    print(f'--------------------')
 
 @client.event
 async def on_message(message):
-    # Bot自身の発言には反応しない
+    # 自分のメッセージには反応しない
     if message.author == client.user:
         return
 
-    # メッセージを判定用に加工（小文字化）
-    content = message.content.lower()
+    # メッセージの中にターゲットワードが含まれているかチェック
+    if any(keyword in message.content for keyword in TARGET_KEYWORDS):
+        await message.channel.send('今センスって言ったか？')
 
-    # 判定実行
-    # TARGET_KEYWORDSの中のどれか一つでもメッセージに含まれていればTrue
-    is_detected = any(word in content for word in TARGET_KEYWORDS)
-
-    if is_detected:
-        await message.channel.send("今センスって言ったか？")
-
-# 環境変数からトークンを読み込み
-token = os.getenv('DISCORD_BOT_TOKEN')
-if token:
-    client.run(token)
-else:
-    print("Error: DISCORD_BOT_TOKEN が設定されていません。")
+# ==========================================
+# 4. 実行
+# ==========================================
+if __name__ == "__main__":
+    # Webサーバーを別スレッドで起動
+    keep_alive()
+    
+    # Discord Botを起動
+    token = os.getenv('DISCORD_BOT_TOKEN')
+    if token:
+        client.run(token)
+    else:
+        print("エラー: DISCORD_BOT_TOKEN が設定されていません。")
