@@ -13,8 +13,7 @@ def home():
     return "Bot is alive!"
 
 def run():
-    # Renderはデフォルトでポート10000を使用することが多いため、
-    # 環境変数からポートを取得するか、8080などを指定します
+    # Renderが指定するポート番号を最優先で使うように修正
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
 
