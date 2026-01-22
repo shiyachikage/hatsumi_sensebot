@@ -3,9 +3,7 @@ import os
 from flask import Flask
 from threading import Thread
 
-# ==========================================
-# 1. Render常時起動用のおまじない (Flask)
-# ==========================================
+# 1. Flaskの設定（これがないとRenderに消される）
 app = Flask('')
 
 @app.route('/')
@@ -13,7 +11,7 @@ def home():
     return "Bot is alive!"
 
 def run():
-    # Renderが指定するポート番号を最優先で使うように修正
+    # Renderのポート指定に合わせる
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
 
@@ -21,10 +19,7 @@ def keep_alive():
     t = Thread(target=run)
     t.start()
 
-# ==========================================
-# 2. メンテナンス特化型：検知ワード設定
-# ==========================================
-# 反応させたい単語をここに追加するだけでOK
+# 2. Discord Botの設定
 TARGET_KEYWORDS = [
     # 1. 基本（カタカナ・ひらがな・英語）
     "センス", "せんす", "sense",
@@ -43,37 +38,35 @@ TARGET_KEYWORDS = [
     "僭す",   # よくわからんセンス5
     "遷す",   # よくわからんセンス6
 ]
-# ==========================================
-# 3. Botのメイン処理
-# ==========================================
 intents = discord.Intents.all()
 client = discord.Client(intents=intents)
 
 @client.event
 async def on_ready():
-    print(f'--- ログイン完了 ---')
-    print(f'Bot名: {client.user.name}')
-    print(f'監視ワード: {", ".join(TARGET_KEYWORDS)}')
-    print(f'--------------------')
+    print('--- ログイン完了 ---')
+    print(f'Bot名: {client.user}')
 
 @client.event
 async def on_message(message):
-    # 自分のメッセージには反応しない
     if message.author == client.user:
         return
-
-    # メッセージの中にターゲットワードが含まれているかチェック
     if any(keyword in message.content for keyword in TARGET_KEYWORDS):
         await message.channel.send('今センスって言ったか？')
 
-# ==========================================
-# 4. 実行
-# ==========================================
+# 3. 実行（順番が大事です！）
 if __name__ == "__main__":
-    # 1. 先にWebサーバーを起動（別スレッドで動くので止まらない）
+    # まずWebサーバーを裏側で動かす
+    print("Starting Web Server...")
     keep_alive()
     
-    # 2. 次にDiscord Botを起動
+    # 次にDiscord Botをメインで動かす
+    print("Starting Discord Bot...")
     token = os.getenv('DISCORD_BOT_TOKEN')
+    
     if token:
-        client.run(token) # ←これが実行されればオンラインになります
+        try:
+            client.run(token)
+        except Exception as e:
+            print(f"Error starting bot: {e}")
+    else:
+        print("Error: DISCORD_BOT_TOKEN is not set.")
