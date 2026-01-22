@@ -70,12 +70,10 @@ async def on_message(message):
 # 4. 実行
 # ==========================================
 if __name__ == "__main__":
-    # Webサーバーを別スレッドで起動
+    # 1. 先にWebサーバーを起動（別スレッドで動くので止まらない）
     keep_alive()
     
-    # Discord Botを起動
+    # 2. 次にDiscord Botを起動
     token = os.getenv('DISCORD_BOT_TOKEN')
     if token:
-        client.run(token)
-    else:
-        print("エラー: DISCORD_BOT_TOKEN が設定されていません。")
+        client.run(token) # ←これが実行されればオンラインになります
