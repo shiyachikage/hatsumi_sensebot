@@ -37,6 +37,9 @@ TARGET_KEYWORDS = [
     "撰す",   # よくわからんセンス4
     "僭す",   # よくわからんセンス5
     "遷す",   # よくわからんセンス6
+    "浅水",   # "せんす"い
+    "先水",   # "せんす"い
+    "千水",   # "せんす"い
 ]
 intents = discord.Intents.all()
 client = discord.Client(intents=intents)
